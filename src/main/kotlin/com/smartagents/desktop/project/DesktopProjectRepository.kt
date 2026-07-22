@@ -3,15 +3,54 @@ package com.smartagents.desktop.project
 import com.smartagents.shared.project.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import java.io.File
 import java.util.UUID
 
 class DesktopProjectRepository : ProjectRepository {
 
+    companion object {
+        private val json = Json { prettyPrint = true; ignoreUnknownKeys = true }
+        private val dataDir: File by lazy {
+            File(System.getProperty("user.home"), ".smartagents").also { it.mkdirs() }
+        }
+        private val stateFile: File by lazy { File(dataDir, "projects.json") }
+    }
+
+    // --- Load from disk or init default ---
+    private fun loadPersistedState(): PersistedState {
+        if (!stateFile.exists()) return PersistedState()
+        return try {
+            json.decodeFromString<PersistedState>(stateFile.readText())
+        } catch (e: Exception) {
+            println("[SmartAgents] Failed to load state: ${e.message}, starting fresh")
+            PersistedState()
+        }
+    }
+
+    private fun saveToDisk() {
+        try {
+            val state = PersistedState(
+                projects = projects.toList(),
+                projectData = projectData.toMap(),
+                timelines = timelines.toMap(),
+                currentProjectId = currentProjectId,
+            )
+            stateFile.writeText(json.encodeToString(state))
+        } catch (e: Exception) {
+            println("[SmartAgents] Failed to save state: ${e.message}")
+        }
+    }
+
     // --- Multi-project ---
-    private val projects = mutableListOf(
+    private val persisted = loadPersistedState()
+
+    private val projects = if (persisted.projects.isEmpty()) mutableListOf(
         ProjectMeta("default", "未命名项目")
-    )
-    private val projectData = mutableMapOf(
+    ) else persisted.projects.toMutableList()
+
+    private val projectData = if (persisted.projectData.isEmpty()) mutableMapOf(
         "default" to ProjectBlueprint(
             projectId = "default",
             projectName = "未命名项目",
@@ -26,11 +65,14 @@ class DesktopProjectRepository : ProjectRepository {
                 )
             ),
         )
-    )
-    private val timelines = mutableMapOf(
+    ) else persisted.projectData.toMutableMap()
+
+    private val timelines = if (persisted.timelines.isEmpty()) mutableMapOf(
         "default" to VersionTimeline("default", emptyList(), mapOf("main" to emptyList()))
-    )
-    private var currentProjectId = "default"
+    ) else persisted.timelines.toMutableMap()
+
+    private var currentProjectId = if (persisted.currentProjectId.isNotEmpty() && projectData.containsKey(persisted.currentProjectId))
+        persisted.currentProjectId else projects.first().projectId
 
     private val _blueprint = MutableStateFlow(projectData[currentProjectId]!!)
     val blueprint: StateFlow<ProjectBlueprint> = _blueprint
@@ -96,6 +138,7 @@ class DesktopProjectRepository : ProjectRepository {
         _blueprint.value = bp.copy(nodes = bp.nodes + (node.id to node.copy(updatedAt = System.currentTimeMillis())))
         projectData[currentProjectId] = _blueprint.value
         if (pushHistory) pushAction(BlueprintAction.UpdateNode(node, previous))
+        if (pushHistory) saveToDisk()
     }
 
     private fun addNodeRaw(parentId: String, node: ProjectNode, pushHistory: Boolean): ProjectNode {
@@ -106,6 +149,7 @@ class DesktopProjectRepository : ProjectRepository {
         _blueprint.value = bp.copy(nodes = bp.nodes + (created.id to created) + (parentId to updatedParent))
         projectData[currentProjectId] = _blueprint.value
         if (pushHistory) pushAction(BlueprintAction.AddNode(created, parentId))
+        if (pushHistory) saveToDisk()
         return created
     }
 
@@ -127,6 +171,7 @@ class DesktopProjectRepository : ProjectRepository {
         _blueprint.value = bp.copy(nodes = newNodes)
         projectData[currentProjectId] = _blueprint.value
         if (pushHistory) pushAction(BlueprintAction.DeleteNode(node, children, node.parentId))
+        if (pushHistory) saveToDisk()
     }
 
     private fun restoreNodeRaw(action: BlueprintAction.DeleteNode, pushHistory: Boolean) {
@@ -149,6 +194,7 @@ class DesktopProjectRepository : ProjectRepository {
         _blueprint.value = bp.copy(nodes = bp.nodes + (parentId to parent.copy(children = newOrder, updatedAt = System.currentTimeMillis())))
         projectData[currentProjectId] = _blueprint.value
         if (pushHistory) pushAction(BlueprintAction.ReorderChildren(parentId, newOrder, oldOrder))
+        if (pushHistory) saveToDisk()
     }
 
     private fun refreshFlows() {
@@ -181,6 +227,7 @@ class DesktopProjectRepository : ProjectRepository {
             branches = tl.branches + (created.branchName to branchVersions),
         )
         timelines[currentProjectId] = _timeline.value
+        saveToDisk()
         return created
     }
 
@@ -214,6 +261,7 @@ class DesktopProjectRepository : ProjectRepository {
         currentProjectId = id
         _projectList.value = projects.toList()
         refreshFlows()
+        saveToDisk()
         return bp
     }
 
@@ -226,6 +274,7 @@ class DesktopProjectRepository : ProjectRepository {
         }
         _projectList.value = projects.toList()
         refreshFlows()
+        saveToDisk()
     }
 
     override suspend fun renameProject(projectId: String, name: String) {

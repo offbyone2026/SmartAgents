@@ -165,9 +165,12 @@ fun ProjectDashboard(
                             editingNodeId = bpState.editingNodeId,
                             onNodeClicked = { blueprintViewModel.selectNode(it) },
                             onNodeDoubleClicked = { blueprintViewModel.startEditing(it) },
-                            onNodeRightClicked = { _, _ -> /* context menu handled internally */ },
+                            onNodeRightClicked = { _, _ -> },
                             onNodeDragReorder = { parentId, from, to -> blueprintViewModel.reorderChildren(parentId, from, to) },
                             onEditCommit = { title -> bpState.editingNodeId?.let { blueprintViewModel.updateNodeTitle(it, title) } },
+                            onContextAddChild = { id -> blueprintViewModel.addChildNode(id, "新模块") },
+                            onContextDeleteNode = { id -> blueprintViewModel.deleteNode(id) },
+                            onContextSetStatus = { id, status -> blueprintViewModel.updateNodeStatus(id, status) },
                             modifier = Modifier.weight(1f),
                         )
                     }

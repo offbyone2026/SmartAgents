@@ -227,6 +227,9 @@ fun BlueprintChart(
     onNodeRightClicked: (String, Offset) -> Unit,
     onNodeDragReorder: (parentId: String, fromIndex: Int, toIndex: Int) -> Unit,
     onEditCommit: (String) -> Unit,
+    onContextAddChild: (String) -> Unit = {},
+    onContextDeleteNode: (String) -> Unit = {},
+    onContextSetStatus: (String, NodeStatus) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
     val textMeasurer = rememberTextMeasurer()
@@ -317,11 +320,13 @@ fun BlueprintChart(
                         .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(8.dp)).width(140.dp).padding(4.dp)
                 ) {
                     contextMenuItem("\u270F\uFE0F 重命名") { onNodeDoubleClicked(contextMenuNode!!); contextMenuVisible = false }
-                    contextMenuItem("\uD83D\uDCCB 计划中") { contextMenuVisible = false }
+                    contextMenuItem("\uD83D\uDCCB 计划中") { contextMenuNode?.let { onContextSetStatus(it, NodeStatus.PLANNED) }; contextMenuVisible = false }
+                    contextMenuItem("\u2705 已完成") { contextMenuNode?.let { onContextSetStatus(it, NodeStatus.DONE) }; contextMenuVisible = false }
+                    contextMenuItem("\uD83D\uDD27 待提高") { contextMenuNode?.let { onContextSetStatus(it, NodeStatus.IMPROVING) }; contextMenuVisible = false }
                     HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
-                    contextMenuItem("\u2795 添加子模块") { contextMenuVisible = false }
+                    contextMenuItem("\u2795 添加子模块") { contextMenuNode?.let { onContextAddChild(it) }; contextMenuVisible = false }
                     HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
-                    contextMenuItem("\uD83D\uDDD1 删除", isDanger = true) { contextMenuVisible = false }
+                    contextMenuItem("\uD83D\uDDD1 删除", isDanger = true) { contextMenuNode?.let { onContextDeleteNode(it) }; contextMenuVisible = false }
                 }
             }
         }

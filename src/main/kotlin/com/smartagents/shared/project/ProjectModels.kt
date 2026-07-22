@@ -1,7 +1,10 @@
 package com.smartagents.shared.project
 
+import kotlinx.serialization.Serializable
+
 /* ---------- Base Enums & Data ---------- */
 
+@Serializable
 enum class NodeStatus {
     PLANNED,      // 计划中
     DONE,         // 已完成
@@ -9,6 +12,7 @@ enum class NodeStatus {
     ABANDONED,    // 已放弃
 }
 
+@Serializable
 enum class NodeIcon(val emoji: String) {
     NONE(""),
     ROOT("\uD83C\uDFE0"),      // 🏠
@@ -25,6 +29,7 @@ enum class NodeIcon(val emoji: String) {
     SECURITY("\uD83D\uDD12"),   // 🔒
 }
 
+@Serializable
 data class ProjectNode(
     val id: String,
     val parentId: String? = null,
@@ -39,6 +44,7 @@ data class ProjectNode(
     val updatedAt: Long = 0L,
 )
 
+@Serializable
 data class ProjectBlueprint(
     val projectId: String,
     val projectName: String,
@@ -47,6 +53,7 @@ data class ProjectBlueprint(
     val version: Int = 1,
 )
 
+@Serializable
 data class NodeGroup(
     val tag: String,
     val label: String,
@@ -55,6 +62,7 @@ data class NodeGroup(
 
 /* ---------- Version ---------- */
 
+@Serializable
 data class VersionRecord(
     val version: String,
     val timestamp: Long,
@@ -67,6 +75,7 @@ data class VersionRecord(
     val branchName: String = "main",
 )
 
+@Serializable
 data class VersionTimeline(
     val projectId: String,
     val versions: List<VersionRecord>,
@@ -75,6 +84,7 @@ data class VersionTimeline(
 
 /* ---------- Multi-Project ---------- */
 
+@Serializable
 data class ProjectMeta(
     val projectId: String,
     val projectName: String,
@@ -112,3 +122,13 @@ interface ProjectRepository {
     suspend fun deleteProject(projectId: String)
     suspend fun renameProject(projectId: String, name: String)
 }
+
+/* ---------- Persistence ---------- */
+
+@Serializable
+data class PersistedState(
+    val projects: List<ProjectMeta> = emptyList(),
+    val projectData: Map<String, ProjectBlueprint> = emptyMap(),
+    val timelines: Map<String, VersionTimeline> = emptyMap(),
+    val currentProjectId: String = "",
+)
