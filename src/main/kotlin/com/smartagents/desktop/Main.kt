@@ -21,7 +21,7 @@ import kotlinx.coroutines.withContext
 
 private sealed interface AppState {
     data object Checking : AppState
-    data class LoggedIn(val auth: AuthState) : AppState
+    data class LoggedIn(val auth: AuthState, val currentView: String = "home") : AppState
     data object Login : AppState
 }
 
@@ -72,13 +72,18 @@ fun main() = application {
                     )
                 }
                 is AppState.LoggedIn -> {
-                    HomeScreen(
-                        auth = s.auth,
-                        onLogout = {
-                            AuthStorage.clear()
-                            appState = AppState.Login
-                        }
-                    )
+                    when (s.currentView) {
+                        "office" -> OfficeScreen(
+                            auth = s.auth,
+                            onBack = { appState = AppState.LoggedIn(s.auth, "home") },
+                            onLogout = { AuthStorage.clear(); appState = AppState.Login }
+                        )
+                        else -> HomeScreen(
+                            auth = s.auth,
+                            onNavigate = { view -> appState = AppState.LoggedIn(s.auth, view) },
+                            onLogout = { AuthStorage.clear(); appState = AppState.Login }
+                        )
+                    }
                 }
             }
         }

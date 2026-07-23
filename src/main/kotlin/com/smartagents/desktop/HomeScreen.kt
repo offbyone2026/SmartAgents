@@ -40,9 +40,9 @@ private val BorderLight = Color(0xFFE0E0E0)
 private val BorderInput = Color(0xFFD0D0D0)
 private val TextPri = Color(0xFF1A1A1A)
 private val TextSec = Color(0xFF5F6368)
-private val TextHint = Color(0xFF9AA0A6)
+private val TextHint = Color(0xFF80868B)
 private val TextOnAccent = Color.White
-private val DividerColor = Color(0xFFEEEEEE)
+private val DividerColor = Color(0xFFEBEBEB)
 
 // Card accent palette — softer, harmonious
 private val CardColors = listOf(
@@ -62,14 +62,14 @@ data class TaskCardData(
 )
 
 @Composable
-fun HomeScreen(auth: AuthState, onLogout: () -> Unit) {
+fun HomeScreen(auth: AuthState, onNavigate: (String) -> Unit, onLogout: () -> Unit) {
     MaterialTheme(colorScheme = lightColorScheme(
         background = BgWhite,
         surface = BgWhite,
         onSurface = TextPri,
     )) {
         Row(Modifier.fillMaxSize().background(BgWhite)) {
-            LeftSidebar(auth, onLogout)
+            LeftSidebar(auth, onNavigate, onLogout)
             Box(Modifier.width(1.dp).fillMaxHeight().background(DividerColor))
             CenterMain(Modifier.weight(1f))
             Box(Modifier.width(1.dp).fillMaxHeight().background(DividerColor))
@@ -82,7 +82,7 @@ fun HomeScreen(auth: AuthState, onLogout: () -> Unit) {
 // LEFT SIDEBAR
 // ============================================================
 @Composable
-private fun LeftSidebar(auth: AuthState, onLogout: () -> Unit) {
+private fun LeftSidebar(auth: AuthState, onNavigate: (String) -> Unit, onLogout: () -> Unit) {
     var searchText by remember { mutableStateOf("") }
     var kbExpanded by remember { mutableStateOf(true) }
 
@@ -149,6 +149,29 @@ private fun LeftSidebar(auth: AuthState, onLogout: () -> Unit) {
             Spacer(Modifier.height(12.dp))
             Divider(color = DividerColor, thickness = 1.dp)
             Spacer(Modifier.height(10.dp))
+
+            // Chat section
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("对话", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextSec)
+            }
+            Spacer(Modifier.height(6.dp))
+
+            // Office entry — highlighted
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                    .background(AccentLight.copy(alpha = 0.6f))
+                    .clickable { onNavigate("office") }
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(Modifier.size(6.dp).clip(RoundedCornerShape(1.dp)).background(Accent))
+                Spacer(Modifier.width(8.dp))
+                Icon(Icons.Default.Business, null, tint = Accent, modifier = Modifier.size(17.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("办公室", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Accent)
+            }
+
+            Spacer(Modifier.height(8.dp))
 
             // Chat History — empty
             Text("对话历史", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextSec)
@@ -273,7 +296,7 @@ private fun CenterMain(modifier: Modifier = Modifier) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 60.dp), horizontalArrangement = Arrangement.spacedBy(28.dp)) {
             tabs.forEachIndexed { i, t ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable { selectedTab = i }) {
-                    Text(t, fontSize = 14.sp,
+                    Text(t, fontSize = 15.sp,
                         fontWeight = if (i == selectedTab) FontWeight.SemiBold else FontWeight.Normal,
                         color = if (i == selectedTab) TextPri else TextSec)
                     if (i == selectedTab) {
@@ -306,15 +329,14 @@ private fun CenterMain(modifier: Modifier = Modifier) {
 @Composable
 private fun TaskCard(data: TaskCardData, modifier: Modifier = Modifier) {
     Card(
-        modifier = modifier.height(88.dp),
+        modifier = modifier.height(90.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = BgCard),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = BorderStroke(0.5.dp, BorderLight),
     ) {
-        Row(Modifier.fillMaxSize().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            // Icon circle
-            Box(Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)).background(data.accent.copy(alpha = 0.10f)),
+        Row(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(data.accent.copy(alpha = 0.10f)),
                 contentAlignment = Alignment.Center) {
                 Icon(data.icon, null, tint = data.accent, modifier = Modifier.size(22.dp))
             }
@@ -326,6 +348,7 @@ private fun TaskCard(data: TaskCardData, modifier: Modifier = Modifier) {
                 Text(data.desc, fontSize = 12.sp, color = TextSec, maxLines = 2, overflow = TextOverflow.Ellipsis,
                     lineHeight = 16.sp)
             }
+            Icon(Icons.Default.KeyboardArrowRight, null, tint = TextHint.copy(alpha = 0.4f), modifier = Modifier.size(18.dp))
         }
     }
 }
