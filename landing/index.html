@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartAgents (Brarn) — 全自动化智能开发平台</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0a;
+            color: #e0e0e0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+        a { color: inherit; text-decoration: none; }
+
+        /* ── Nav ── */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            background: rgba(10,10,10,0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding: 0 40px; height: 60px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .nav-brand { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; color: #fff; }
+        .nav-brand span { color: #E53935; }
+        .nav-links { display: flex; gap: 32px; font-size: 14px; color: #999; }
+        .nav-links a:hover { color: #fff; transition: color 0.2s; }
+        .nav-cta {
+            background: #E53935; color: #fff; border: none;
+            padding: 8px 24px; border-radius: 6px; font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: background 0.2s;
+        }
+        .nav-cta:hover { background: #c62828; }
+
+        /* ── Hero ── */
+        .hero {
+            padding: 180px 40px 120px; text-align: center;
+            max-width: 900px; margin: 0 auto;
+        }
+        .hero-badge {
+            display: inline-block; padding: 6px 18px; border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.15); font-size: 13px; color: #aaa;
+            margin-bottom: 32px; letter-spacing: 1px;
+        }
+        .hero h1 { font-size: 64px; font-weight: 800; letter-spacing: -2px; color: #fff; line-height: 1.1; }
+        .hero h1 .accent { color: #E53935; }
+        .hero .subtitle {
+            font-size: 22px; color: #888; margin-top: 24px;
+            font-weight: 400; max-width: 640px; margin-left: auto; margin-right: auto;
+        }
+        .hero .tagline {
+            margin-top: 40px; font-size: 18px; color: #666;
+            letter-spacing: 1px;
+        }
+        .hero-buttons { margin-top: 48px; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        .btn-primary {
+            background: #E53935; color: #fff; border: none;
+            padding: 16px 48px; border-radius: 8px; font-size: 16px; font-weight: 700;
+            cursor: pointer; transition: all 0.2s; letter-spacing: 1px;
+        }
+        .btn-primary:hover { background: #c62828; transform: translateY(-1px); }
+        .btn-outline {
+            background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.25);
+            padding: 16px 48px; border-radius: 8px; font-size: 16px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s; letter-spacing: 1px;
+        }
+        .btn-outline:hover { border-color: #fff; background: rgba(255,255,255,0.05); }
+
+        /* ── Section ── */
+        .section { padding: 100px 40px; max-width: 1100px; margin: 0 auto; }
+        .section-header { text-align: center; margin-bottom: 72px; }
+        .section-header h2 { font-size: 40px; font-weight: 700; color: #fff; letter-spacing: -1px; }
+        .section-header p { margin-top: 16px; font-size: 17px; color: #777; max-width: 560px; margin-left: auto; margin-right: auto; }
+
+        /* ── Capability Grid ── */
+        .cap-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+        }
+        .cap-card {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 16px; padding: 40px 32px; transition: all 0.3s;
+        }
+        .cap-card:hover {
+            background: rgba(255,255,255,0.06);
+            border-color: rgba(255,255,255,0.12);
+            transform: translateY(-4px);
+        }
+        .cap-icon { font-size: 36px; margin-bottom: 20px; }
+        .cap-card h3 { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 12px; }
+        .cap-card p { font-size: 14px; color: #888; line-height: 1.7; }
+        .cap-card .tag {
+            display: inline-block; margin-top: 16px; padding: 4px 12px;
+            border-radius: 4px; font-size: 12px; font-weight: 600;
+        }
+        .tag-red { background: rgba(229,57,53,0.15); color: #E53935; }
+        .tag-blue { background: rgba(66,133,244,0.15); color: #4285F4; }
+        .tag-green { background: rgba(52,168,83,0.15); color: #34A853; }
+
+        /* ── Architecture / Flow ── */
+        .flow-section { background: rgba(255,255,255,0.015); border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .flow-visual {
+            display: flex; align-items: center; justify-content: center; gap: 24px;
+            flex-wrap: wrap; padding: 40px 0;
+        }
+        .flow-node {
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px; padding: 32px 28px; text-align: center;
+            min-width: 160px; transition: all 0.3s;
+        }
+        .flow-node:hover { border-color: #E53935; background: rgba(229,57,53,0.06); }
+        .flow-node h4 { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+        .flow-node p { font-size: 12px; color: #777; }
+        .flow-arrow { font-size: 28px; color: #E53935; font-weight: 300; }
+
+        /* ── Engine Grid ── */
+        .engine-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+            text-align: center;
+        }
+        .engine-item {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px; padding: 32px 20px; transition: all 0.3s;
+        }
+        .engine-item:hover { border-color: rgba(255,255,255,0.15); }
+        .engine-item .engine-name { font-size: 28px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+        .engine-item .engine-status { font-size: 13px; color: #666; }
+        .engine-item .engine-status.ready { color: #34A853; }
+
+        /* ── CTA Banner ── */
+        .cta-banner {
+            max-width: 800px; margin: 0 auto; text-align: center;
+            padding: 80px 40px;
+        }
+        .cta-banner h2 { font-size: 36px; font-weight: 700; color: #fff; letter-spacing: -1px; }
+        .cta-banner p { margin-top: 16px; font-size: 16px; color: #888; }
+
+        /* ── Footer ── */
+        footer {
+            border-top: 1px solid rgba(255,255,255,0.06);
+            padding: 40px; text-align: center; font-size: 13px; color: #555;
+        }
+        footer .links { margin-bottom: 12px; display: flex; gap: 24px; justify-content: center; }
+        footer .links a:hover { color: #aaa; }
+
+        @media (max-width: 768px) {
+            .hero { padding: 140px 24px 80px; }
+            .hero h1 { font-size: 36px; }
+            .hero .subtitle { font-size: 17px; }
+            .cap-grid { grid-template-columns: 1fr; }
+            .engine-grid { grid-template-columns: repeat(2, 1fr); }
+            .flow-visual { flex-direction: column; }
+            .flow-arrow { transform: rotate(90deg); }
+            nav { padding: 0 20px; }
+            .nav-links { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+    <div class="nav-brand">SmartAgents <span>(Brarn)</span></div>
+    <div class="nav-links">
+        <a href="#capabilities">能力</a>
+        <a href="#engines">引擎</a>
+        <a href="#flow">工作流</a>
+        <a href="#download">下载</a>
+    </div>
+    <button class="nav-cta" onclick="document.getElementById('download').scrollIntoView({behavior:'smooth'})">申请内测</button>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+    <div class="hero-badge">AI-NATIVE DEVELOPMENT PLATFORM</div>
+    <h1>一句指令<span class="accent">。</span><br>全自动化开发</h1>
+    <p class="subtitle">
+        专为软件工程、逆向分析与游戏开发打造。<br>
+        告别手动编码，SmartAgents 理解你的意图，自主完成从架构到交付的全部工作。
+    </p>
+    <p class="tagline">—— 你只管说，剩下的交给我们。</p>
+    <div class="hero-buttons">
+        <button class="btn-primary" onclick="document.getElementById('download').scrollIntoView({behavior:'smooth'})">申请内测资格</button>
+        <button class="btn-outline" onclick="document.getElementById('capabilities').scrollIntoView({behavior:'smooth'})">了解能力</button>
+    </div>
+</section>
+
+<!-- Capabilities -->
+<section class="section" id="capabilities">
+    <div class="section-header">
+        <h2>三大核心能力</h2>
+        <p>不是辅助工具，是自主执行的智能体。理解需求、规划方案、编写代码、自测修复，全链路自动化。</p>
+    </div>
+    <div class="cap-grid">
+        <div class="cap-card">
+            <div class="cap-icon">&#x1F4BB;</div>
+            <h3>全自动软件开发</h3>
+            <p>
+                从需求文档到可运行产品，零手动编码。前端、后端、数据库、API 联调，
+                SmartAgents 自动生成完整项目并持续迭代。
+            </p>
+            <span class="tag tag-red">代码生成</span>
+        </div>
+        <div class="cap-card">
+            <div class="cap-icon">&#x1F50D;</div>
+            <h3>智能逆向工程</h3>
+            <p>
+                二进制分析、协议还原、脱壳反混淆。Brarn 自动识别目标架构，
+                拆解执行逻辑，输出可读源码与完整调用链。
+            </p>
+            <span class="tag tag-blue">二进制分析</span>
+        </div>
+        <div class="cap-card">
+            <div class="cap-icon">&#x1F3AE;</div>
+            <h3>游戏开发引擎</h3>
+            <p>
+                从玩法设计到成品构建，自动生成游戏逻辑、资源管线、物理效果。
+                无需写一行代码，描述玩法即可看到成品。
+            </p>
+            <span class="tag tag-green">玩法生成</span>
+        </div>
+    </div>
+</section>
+
+<!-- Flow -->
+<section class="flow-section" id="flow">
+    <div class="section">
+        <div class="section-header">
+            <h2>全自动工作流</h2>
+            <p>从你的一句话开始，到可交付产品结束。全程无需人工介入。</p>
+        </div>
+        <div class="flow-visual">
+            <div class="flow-node">
+                <h4>💬 自然语言输入</h4>
+                <p>描述你的需求</p>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">
+                <h4>🧠 Brarn 理解分析</h4>
+                <p>拆解任务、制定方案</p>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">
+                <h4>⚙️ 自主编码测试</h4>
+                <p>多 Agent 并行执行</p>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">
+                <h4>🚀 交付成品</h4>
+                <p>可运行、可部署</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Engines -->
+<section class="section" id="engines">
+    <div class="section-header">
+        <h2>即将支持的引擎与框架</h2>
+        <p>SmartAgents 正在适配主流游戏引擎与开发框架，让全自动化覆盖更多技术栈。</p>
+    </div>
+    <div class="engine-grid">
+        <div class="engine-item">
+            <div class="engine-name">Unity</div>
+            <div class="engine-status ready">适配中</div>
+        </div>
+        <div class="engine-item">
+            <div class="engine-name">Unreal</div>
+            <div class="engine-status ready">适配中</div>
+        </div>
+        <div class="engine-item">
+            <div class="engine-name">Godot</div>
+            <div class="engine-status">计划中</div>
+        </div>
+        <div class="engine-item">
+            <div class="engine-name">Cocos</div>
+            <div class="engine-status">计划中</div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section id="download" class="cta-banner">
+    <h2>SmartAgents 内测开放中</h2>
+    <p>访问 <strong style="color:#E53935;">off.by.one.com</strong> 预约获取内测凭证</p>
+    <div style="margin-top:40px;">
+        <button class="btn-primary" style="font-size:18px; padding: 18px 56px;">申请内测资格</button>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer>
+    <div class="links">
+        <a href="#capabilities">能力</a>
+        <a href="#engines">引擎适配</a>
+        <a href="#flow">工作流</a>
+        <a href="#">隐私条款</a>
+        <a href="#">使用条款</a>
+    </div>
+    <p>Copyright &copy; 2026 SmartAgents (Brarn). All Rights Reserved.</p>
+</footer>
+
+</body>
+</html>
