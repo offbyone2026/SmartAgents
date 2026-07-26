@@ -226,21 +226,18 @@ private fun SideKbRow(icon: ImageVector, label: String) {
 private fun OfficeCenter(modifier: Modifier = Modifier) {
     val agents = remember {
         listOf(
-            // Row 0: Browser, Computer
-            OfficeAgent("Browser Agent", "浏览器自动化", Blue500, Color(0xFF42A5F5),
-                Icons.Default.Language, faceIndex = 0, col = 0, row = 0),
-            OfficeAgent("Computer Agent", "系统管理", Green500, Color(0xFF66BB6A),
-                Icons.Default.Computer, faceIndex = 1, col = 4, row = 0),
-            // Row 1: File, Marvis, Search
+            OfficeAgent("Dispatcher", "任务调度中枢", Accent, Color(0xFFEF5350),
+                Icons.Default.Psychology, faceIndex = 0, col = 0, row = 0),
             OfficeAgent("File Agent", "文件处理", Orange500, Color(0xFFFFA726),
-                Icons.Default.FolderOpen, faceIndex = 2, col = 0, row = 1),
-            OfficeAgent("Marvis", "主控 Agent · 调度中枢", Accent, Color(0xFFEF5350),
-                Icons.Default.Psychology, faceIndex = 3, col = 2, row = 1),
+                Icons.Default.FolderOpen, faceIndex = 1, col = 1, row = 0),
+            OfficeAgent("Browser Agent", "浏览器自动化", Blue500, Color(0xFF42A5F5),
+                Icons.Default.Language, faceIndex = 2, col = 2, row = 0),
+            OfficeAgent("Computer Agent", "系统管理", Green500, Color(0xFF66BB6A),
+                Icons.Default.Computer, faceIndex = 3, col = 3, row = 0),
             OfficeAgent("Search Agent", "搜索检索", Purple500, Color(0xFFAB47BC),
-                Icons.Default.Search, faceIndex = 4, col = 4, row = 1),
-            // Row 2: App
+                Icons.Default.Search, faceIndex = 4, col = 4, row = 0),
             OfficeAgent("App Agent", "应用操作", Teal500, Color(0xFF26C6DA),
-                Icons.Default.Apps, faceIndex = 5, col = 2, row = 2),
+                Icons.Default.Apps, faceIndex = 5, col = 5, row = 0),
         )
     }
 
@@ -252,9 +249,8 @@ private fun OfficeCenter(modifier: Modifier = Modifier) {
         ) {
             Icon(Icons.Default.Business, null, tint = RedCut, modifier = Modifier.size(24.dp))
             Spacer(Modifier.width(10.dp))
-            Text("SmartAgents 办公室", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPri)
+            Text("Dispatcher 办公室", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPri)
             Spacer(Modifier.weight(1f))
-            // Status summary
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(7.dp).clip(CircleShape).background(Green500))
                 Spacer(Modifier.width(4.dp))
@@ -264,7 +260,7 @@ private fun OfficeCenter(modifier: Modifier = Modifier) {
 
         Divider(color = BorderLight, thickness = 1.dp)
 
-        // Office floor grid
+        // Office floor — single row
         Box(
             modifier = Modifier.fillMaxSize().padding(16.dp)
                 .clip(RoundedCornerShape(14.dp))
@@ -290,26 +286,13 @@ private fun OfficeCenter(modifier: Modifier = Modifier) {
                 }
             }
 
-            // Column labels at top
+            // Agent cards in single horizontal row
             Row(
-                Modifier.fillMaxWidth().padding(start = 8.dp, top = 12.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                listOf("A区", "B区", "C区", "D区", "E区").forEach {
-                    Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFE8EAED)) {
-                        Text(it, fontSize = 10.sp, color = TextHint, fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                    }
-                }
-            }
-
-            // Agent desk cards — positioned in a neat 3-row × 5-col grid
-            agents.forEach { agent ->
-                // Calculate absolute position: col 0..4 maps to horizontal position, row 0..2 maps to vertical
-                val xDp = (agent.col * 140 + 20).dp
-                val yDp = (agent.row * 200 + 50).dp
-
-                Box(modifier = Modifier.padding(start = xDp, top = yDp)) {
+                agents.forEach { agent ->
                     AgentDeskCard(agent)
                 }
             }
@@ -483,50 +466,12 @@ private fun OfficeRightPanel() {
 // ============================================================
 @Composable
 private fun WorkLogTab() {
-    data class LogEntry(
-        val agent: String,
-        val action: String,
-        val time: String,
-        val color: Color,
-    )
-
-    val logs = listOf(
-        LogEntry("Marvis", "调度 File Agent 执行文件整理任务", "14:32:08", Accent),
-        LogEntry("File Agent", "开始整理 D:\\Work 目录下的文档", "14:32:11", Orange500),
-        LogEntry("File Agent", "已完成 48 个文件的分类归档", "14:32:45", Orange500),
-        LogEntry("Marvis", "接收新任务：分析用户代码仓库结构", "14:33:02", Accent),
-        LogEntry("Browser Agent", "正在搜索相关技术文档…", "14:33:05", Blue500),
-        LogEntry("Search Agent", "检索到 12 条相关技术资料", "14:33:28", Purple500),
-        LogEntry("Computer Agent", "系统资源检查完成，内存占用 62%", "14:33:50", Green500),
-        LogEntry("App Agent", "已启动 Android 模拟器环境", "14:34:10", Teal500),
-        LogEntry("Marvis", "所有 Agent 运行正常，等待下一条指令", "14:34:22", Accent),
-    )
-
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        Modifier.fillMaxSize().padding(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("实时日志", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPri)
-            Text("9 条记录", fontSize = 11.sp, color = TextHint)
-        }
-
-        logs.forEach { log ->
-            Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(BgWhite)
-                    .border(0.5.dp, BorderLight, RoundedCornerShape(8.dp))
-                    .padding(10.dp),
-                verticalAlignment = Alignment.Top
-            ) {
-                Box(Modifier.size(8.dp).clip(CircleShape).background(log.color).padding(top = 3.dp))
-                Spacer(Modifier.width(8.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(log.agent, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = log.color)
-                    Text(log.action, fontSize = 12.sp, color = TextPri, lineHeight = 16.sp)
-                }
-                Text(log.time, fontSize = 10.sp, color = TextHint)
-            }
-        }
+        Text("暂无日志", fontSize = 14.sp, color = TextHint)
     }
 }
 
@@ -536,84 +481,11 @@ private fun WorkLogTab() {
 @Composable
 private fun BlueprintTab() {
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        Modifier.fillMaxSize().padding(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Text("系统架构图", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPri)
-
-        // Architecture diagram — drawn with Canvas
-        Box(
-            Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(10.dp))
-                .background(BgWhite).border(0.5.dp, BorderLight, RoundedCornerShape(10.dp))
-        ) {
-            Canvas(Modifier.fillMaxSize().padding(8.dp)) {
-                val w = size.width
-                val h = size.height
-
-                // Top: Marvis (main)
-                val topBox = androidx.compose.ui.geometry.Rect(w * 0.3f, 10f, w * 0.7f, 55f)
-                drawRoundRect(Color(0xFFFFEBEE), topLeft = topBox.topLeft, size = topBox.size, cornerRadius = androidx.compose.ui.geometry.CornerRadius(8f, 8f))
-                drawRoundRect(Accent, topLeft = topBox.topLeft, size = topBox.size, cornerRadius = androidx.compose.ui.geometry.CornerRadius(8f, 8f), style = Stroke(1.5f))
-
-                // Bottom row agents
-                val colors = listOf(Orange500, Blue500, Green500, Purple500, Teal500)
-                colors.forEachIndexed { i, color ->
-                    val box = androidx.compose.ui.geometry.Rect(
-                        i * w / 5f + 4f, h * 0.45f,
-                        (i + 1) * w / 5f - 4f, h * 0.45f + 50f
-                    )
-                    drawRoundRect(color.copy(alpha = 0.08f), topLeft = box.topLeft, size = box.size, cornerRadius = androidx.compose.ui.geometry.CornerRadius(6f, 6f))
-                    drawRoundRect(color, topLeft = box.topLeft, size = box.size, cornerRadius = androidx.compose.ui.geometry.CornerRadius(6f, 6f), style = Stroke(1f))
-                }
-
-                // Lines from Marvis to each agent
-                repeat(5) { i ->
-                    val startX = w * 0.5f
-                    val startY = 55f
-                    val endX = i * w / 5f + w / 10f
-                    val endY = h * 0.45f
-                    drawLine(Color(0xFFBDBDBD), Offset(startX, startY), Offset(endX, endY), strokeWidth = 1.2f)
-                }
-            }
-
-            // Labels overlaid on canvas positions
-            Column(Modifier.fillMaxSize().padding(horizontal = 8.dp)) {
-                Box(Modifier.fillMaxWidth().weight(0.25f), contentAlignment = Alignment.Center) {
-                    Text("Marvis 主控", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Accent)
-                }
-                Row(Modifier.fillMaxWidth().weight(0.75f).padding(bottom = 12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    listOf("File", "Browser", "Computer", "Search", "App").forEachIndexed { _, name ->
-                        Text(name, fontSize = 10.sp, fontWeight = FontWeight.Medium, color = TextSec)
-                    }
-                }
-            }
-        }
-
-        // Legend
-        Card(
-            Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp),
-            colors = CardDefaults.cardColors(containerColor = BgWhite),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            border = BorderStroke(0.5.dp, BorderLight),
-        ) {
-            Column(Modifier.padding(12.dp)) {
-                Text("协作流程", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TextPri)
-                Spacer(Modifier.height(8.dp))
-                listOf(
-                    "1. Marvis 接收用户指令，分析并拆解子任务" to Accent,
-                    "2. 根据任务类型路由到对应专业 Agent" to TextPri,
-                    "3. Agent 执行完成后汇报结果给 Marvis" to TextPri,
-                    "4. Marvis 汇总并交付最终结果给用户" to TextPri,
-                ).forEach { (text, color) ->
-                    Row(Modifier.padding(vertical = 2.dp)) {
-                        Box(Modifier.size(5.dp).clip(CircleShape).background(color).padding(top = 5.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text(text, fontSize = 11.sp, color = TextSec, lineHeight = 15.sp)
-                    }
-                }
-            }
-        }
+        Text("暂无蓝图", fontSize = 14.sp, color = TextHint)
     }
 }
 
@@ -622,73 +494,11 @@ private fun BlueprintTab() {
 // ============================================================
 @Composable
 private fun VersionHistoryTab() {
-    data class Version(
-        val hash: String,
-        val message: String,
-        val date: String,
-        val tag: String?,
-        val tagColor: Color?,
-    )
-
-    val versions = listOf(
-        Version("323f0c7", "feat: add OfficeScreen with three-column agent workspace layout", "07-22 20:58", "HEAD", Blue500),
-        Version("360de79", "refactor: rebuild HomeScreen UI with cohesive design system", "07-22 14:40", null, null),
-        Version("7821f00", "Initial commit", "07-22 12:10", "init", Green500),
-    )
-
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(0.dp)
+        Modifier.fillMaxSize().padding(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Git 版本记录", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPri)
-            Text("3 commits", fontSize = 11.sp, color = TextHint)
-        }
-
-        Spacer(Modifier.height(8.dp))
-
-        versions.forEachIndexed { idx, v ->
-            Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(BgWhite)
-                    .border(0.5.dp, BorderLight, RoundedCornerShape(8.dp))
-                    .padding(10.dp),
-                verticalAlignment = Alignment.Top
-            ) {
-                // Timeline dot + line
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(20.dp)) {
-                    Box(Modifier.size(10.dp).clip(CircleShape).background(
-                        if (idx == 0) Blue500 else BorderLight))
-                    if (idx < versions.size - 1) {
-                        Box(Modifier.width(1.5.dp).height(30.dp).background(BorderLight))
-                    }
-                }
-                Spacer(Modifier.width(8.dp))
-                Column(Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(v.hash, fontSize = 12.sp, fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1565C0), fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
-                        if (v.tag != null) {
-                            Spacer(Modifier.width(6.dp))
-                            Box(
-                                Modifier.clip(RoundedCornerShape(3.dp))
-                                    .background(v.tagColor!!.copy(alpha = 0.12f))
-                                    .padding(horizontal = 5.dp, vertical = 1.dp)
-                            ) {
-                                Text(v.tag, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = v.tagColor)
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(2.dp))
-                    Text(v.message, fontSize = 11.sp, color = TextSec, lineHeight = 15.sp)
-                    Spacer(Modifier.height(2.dp))
-                    Text(v.date, fontSize = 10.sp, color = TextHint)
-                }
-            }
-        }
-
-        Spacer(Modifier.height(8.dp))
-
-        Text("每次修改都会自动提交到 GitHub，防止代码丢失。",
-            fontSize = 11.sp, color = TextHint, lineHeight = 16.sp)
+        Text("暂无版本记录", fontSize = 14.sp, color = TextHint)
     }
 }
