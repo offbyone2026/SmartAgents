@@ -286,11 +286,11 @@ private fun OfficeCenter(modifier: Modifier = Modifier) {
                 }
             }
 
-            // Agent cards in single horizontal row
-            Row(
-                Modifier.fillMaxSize().padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
+            // Agent cards in single vertical column
+            Column(
+                Modifier.fillMaxSize().padding(horizontal = 16.dp).verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically)
             ) {
                 agents.forEach { agent ->
                     AgentDeskCard(agent)
