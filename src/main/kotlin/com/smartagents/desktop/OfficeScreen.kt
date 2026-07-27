@@ -931,6 +931,8 @@ private fun SettingsDialog(
     onDismiss: () -> Unit,
 ) {
     val defaultPath = "D:\\SmartAgents\\models"
+    var useLocal by remember { mutableStateOf(ChatApi.useLocal) }
+    val localStatus by remember { derivedStateOf { LocalModelManager.getStatus() } }
 
     Box(
         Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f))
@@ -956,8 +958,51 @@ private fun SettingsDialog(
                 }
                 Divider(color = BorderLight, thickness = 1.dp)
 
-                // Current working model indicator
+                // ─── Global Model Source ───
                 Spacer(Modifier.height(14.dp))
+                Surface(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (localStatus is LocalModelManager.Status.Running) Color(0xFFE8F5E9) else Color(0xFFFFF8E1),
+                    border = BorderStroke(1.dp, if (localStatus is LocalModelManager.Status.Running) Color(0xFFA5D6A7) else Color(0xFFFFE082)),
+                ) {
+                    Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("模型来源", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPri)
+                            Spacer(Modifier.weight(1f))
+                            // Cloud / Local toggle
+                            Row(
+                                Modifier.background(BgSidebar, RoundedCornerShape(6.dp)).padding(3.dp),
+                            ) {
+                                for (opt in listOf(false to "云端", true to "本地")) {
+                                    val selected = useLocal == opt.first
+                                    Box(
+                                        Modifier
+                                            .background(if (selected) BgWhite else Color.Transparent, RoundedCornerShape(4.dp))
+                                            .clickable {
+                                                useLocal = opt.first
+                                                ChatApi.useLocal = opt.first
+                                                if (opt.first && localStatus is LocalModelManager.Status.InstalledButNotRunning) {
+                                                    LocalModelManager.startServer()
+                                                }
+                                            }
+                                            .padding(horizontal = 18.dp, vertical = 6.dp),
+                                    ) {
+                                        Text(opt.second, fontSize = 13.sp,
+                                            color = if (selected) TextPri else TextSec,
+                                            fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal)
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(6.dp))
+                        // Local model status & controls
+                        LocalModelStatusBar(localStatus)
+                    }
+                }
+
+                // Current working model indicator
+                Spacer(Modifier.height(12.dp))
                 Surface(
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     shape = RoundedCornerShape(8.dp),
@@ -1293,6 +1338,72 @@ private fun AgentToolChipsRow(agentName: String, isDisabled: Boolean) {
                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
                     fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                 )
+            }
+        }
+    }
+}
+
+// ============================================================
+// Local Model Status Bar
+// ============================================================
+@Composable
+private fun LocalModelStatusBar(status: LocalModelManager.Status) {
+    when (status) {
+        is LocalModelManager.Status.NotInstalled -> {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Warning, null, tint = Orange500, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("本地模型未安装", fontSize = 12.sp, color = TextSec)
+                Spacer(Modifier.weight(1f))
+                TextButton(
+                    onClick = {
+                        val setupPath = System.getProperty("user.dir") + "\\setup.ps1"
+                        try { Runtime.getRuntime().exec(arrayOf("powershell", "-File", setupPath)) }
+                        catch (_: Exception) { }
+                    },
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                ) {
+                    Icon(Icons.Default.Download, null, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("一键部署", fontSize = 12.sp, color = Accent)
+                }
+            }
+        }
+        is LocalModelManager.Status.InstalledButNotRunning -> {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.PauseCircle, null, tint = Orange500, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("本地模型已安装，未启动", fontSize = 12.sp, color = TextSec)
+                Spacer(Modifier.weight(1f))
+                TextButton(
+                    onClick = { LocalModelManager.startServer() },
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                ) {
+                    Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("启动", fontSize = 12.sp, color = Accent)
+                }
+            }
+        }
+        is LocalModelManager.Status.Running -> {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(8.dp).clip(CircleShape).background(Green500))
+                Spacer(Modifier.width(6.dp))
+                Text("本地模型运行中 · qwen2.5:14b", fontSize = 12.sp, color = Color(0xFF2E7D32))
+                Spacer(Modifier.weight(1f))
+                TextButton(
+                    onClick = { LocalModelManager.stopServer() },
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                ) {
+                    Text("停止", fontSize = 12.sp, color = TextHint)
+                }
+            }
+        }
+        is LocalModelManager.Status.Error -> {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Error, null, tint = Accent, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(status.message, fontSize = 12.sp, color = Accent, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }

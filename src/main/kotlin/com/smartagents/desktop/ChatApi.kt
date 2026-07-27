@@ -12,9 +12,20 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 object ChatApi {
-    private const val API_URL = "https://api.deepseek.com/v1/chat/completions"
+    // Cloud (DeepSeek)
+    private const val CLOUD_URL = "https://api.deepseek.com/v1/chat/completions"
     private const val API_KEY = "sk-30be22c5aefd49118f51306fb597c287"
-    private const val MODEL = "deepseek-v4-pro"
+    private const val CLOUD_MODEL = "deepseek-v4-pro"
+
+    // Local (llama.cpp)
+    private const val LOCAL_URL = "http://127.0.0.1:8080/v1/chat/completions"
+    private const val LOCAL_MODEL = "qwen2.5-14b"
+
+    /** Whether to prefer local model. Controlled by settings. */
+    var useLocal: Boolean = false
+
+    /** Check if local model is actually available (installed + server running). */
+    fun isLocalAvailable(): Boolean = LocalModelManager.getStatus() is LocalModelManager.Status.Running
 
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
 
@@ -23,28 +34,51 @@ object ChatApi {
     }
 
     /**
-     * Smart chat: detects file-search intent in user message, runs local search,
-     * and injects results into the prompt before calling DeepSeek.
+     * Smart chat with automatic local/cloud routing.
+     *
+     * Priority rules:
+     * 1. If useLocal=true AND local server is running → use local
+     * 2. If useLocal=true but local not running → try to start it, fallback to cloud
+     * 3. If useLocal=false → use cloud
+     * 4. Cloud 401/402 → auto-switch to local if available
      */
     suspend fun chat(userMessage: String, fileHint: String? = null, fileContent: String? = null): String {
-        // Step 1: Check if user is asking for a local file search
+        // Determine which backend to use
+        val (url, model, key) = resolveBackend()
+
+        // Search intent handling (works with both backends)
         if (fileContent == null && fileHint == null && LocalSearchEngine.isSearchIntent(userMessage)) {
-            return chatWithLocalSearch(userMessage)
+            return chatWithLocalSearch(userMessage, url, model, key)
         }
 
-        // Step 2: Regular chat (possibly with attached file content)
-        var systemPrompt = "你是 SmartAgents，一个 AI 合作体平台的智能助手。回答要简洁直接，用中文。"
+        var systemPrompt = "你是一个 AI 合作体平台的智能助手。回答要简洁直接，用中文。"
         if (fileHint != null) {
             systemPrompt += " 用户选中了文件「$fileHint」。"
             if (fileContent != null) {
                 systemPrompt += " 以下是该文件的内容，请基于此内容回答用户问题：\n\n--- 文件 $fileHint 内容开始 ---\n$fileContent\n--- 文件内容结束 ---"
             }
         }
-        return rawChat(systemPrompt, userMessage)
+        return rawChat(systemPrompt, userMessage, url, model, key)
     }
 
-    /** Execute local search and ask DeepSeek to present results. */
-    private suspend fun chatWithLocalSearch(userMessage: String): String {
+    /** Resolve which backend to use based on settings and availability. */
+    private fun resolveBackend(): Triple<String, String, String> {
+        if (useLocal) {
+            val status = LocalModelManager.getStatus()
+            if (status is LocalModelManager.Status.Running) {
+                return Triple(LOCAL_URL, LOCAL_MODEL, "")
+            }
+            if (status is LocalModelManager.Status.InstalledButNotRunning) {
+                if (LocalModelManager.startServer()) {
+                    return Triple(LOCAL_URL, LOCAL_MODEL, "")
+                }
+            }
+        }
+        return Triple(CLOUD_URL, CLOUD_MODEL, API_KEY)
+    }
+
+    /** Execute local search and inject results into prompt. */
+    private suspend fun chatWithLocalSearch(userMessage: String, url: String, model: String, key: String): String {
         val params = LocalSearchEngine.parseParams(userMessage)
         val results = LocalSearchEngine.search(params)
         val searchReport = LocalSearchEngine.formatResults(params, results)
@@ -57,16 +91,23 @@ object ChatApi {
             appendLine()
             appendLine("请用自然语言向用户汇报搜索结果，列出关键文件。如果结果很多，挑选最重要/最大的几个展示，并说明总共找到多少个。")
         }
-        return rawChat(systemPrompt, userMessage)
+        return rawChat(systemPrompt, userMessage, url, model, key)
     }
 
-    private suspend fun rawChat(systemPrompt: String, userMessage: String): String {
+    private suspend fun rawChat(
+        systemPrompt: String,
+        userMessage: String,
+        url: String,
+        model: String,
+        key: String,
+    ): String {
+        val backendLabel = if (url == CLOUD_URL) "云端(DeepSeek)" else "本地(qwen2.5:14b)"
         try {
-            val httpResponse: HttpResponse = client.post(API_URL) {
+            val httpResponse: HttpResponse = client.post(url) {
                 contentType(ContentType.Application.Json)
-                header("Authorization", "Bearer $API_KEY")
+                if (key.isNotEmpty()) header("Authorization", "Bearer $key")
                 setBody(ChatRequest(
-                    model = MODEL,
+                    model = model,
                     messages = listOf(
                         ChatMsg("system", systemPrompt),
                         ChatMsg("user", userMessage)
@@ -77,15 +118,32 @@ object ChatApi {
             }
             if (httpResponse.status != HttpStatusCode.OK) {
                 val errBody = httpResponse.bodyAsText()
-                return "API 错误 (${httpResponse.status.value}): $errBody"
+                val errorMsg = "API 错误 (${httpResponse.status.value}): $errBody"
+
+                // Auto-fallback: cloud fails → try local
+                if (url == CLOUD_URL && (httpResponse.status.value == 401 || httpResponse.status.value == 402)) {
+                    if (isLocalAvailable()) {
+                        return rawChat(systemPrompt, userMessage, LOCAL_URL, LOCAL_MODEL, "")
+                    }
+                }
+                return errorMsg
             }
             val response: ChatResponse = httpResponse.body()
-            return response.choices?.firstOrNull()?.message?.content ?: "（无回复）"
+            val content = response.choices?.firstOrNull()?.message?.content ?: "（无回复）"
+            return "[$backendLabel] $content"
         } catch (e: Exception) {
-            if (e.message?.contains("402") == true || e.message?.contains("Insufficient Balance") == true) {
-                return "DeepSeek 账户余额不足，请充值后重试。"
+            val msg = e.message ?: "未知错误"
+            if (msg.contains("402") || msg.contains("Insufficient Balance")) {
+                if (isLocalAvailable()) {
+                    return rawChat(systemPrompt, userMessage, LOCAL_URL, LOCAL_MODEL, "")
+                }
+                return "DeepSeek 账户余额不足，且本地模型不可用。"
             }
-            return "抱歉，请求出错了：${e.message ?: "未知错误"}"
+            // Connection refused → local server not running
+            if (msg.contains("Connection refused") && url == LOCAL_URL) {
+                return "本地模型未启动，请先在设置中点击「启动本地模型」。"
+            }
+            return "抱歉，请求出错了：$msg"
         }
     }
 }
