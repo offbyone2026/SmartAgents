@@ -6,13 +6,13 @@ import kotlinx.serialization.Serializable
 data class LoginRequest(val username: String, val password: String)
 
 @Serializable
-data class LoginResponse(val ok: Boolean, val username: String? = null, val token: String? = null, val message: String? = null)
+data class LoginResponse(val success: Boolean, val token: String? = null, val message: String? = null)
 
 @Serializable
 data class VerifyRequest(val token: String)
 
 @Serializable
-data class VerifyResponse(val ok: Boolean, val username: String? = null, val message: String? = null)
+data class VerifyResponse(val success: Boolean, val username: String? = null, val message: String? = null)
 
 @Serializable
 data class AuthState(val token: String, val username: String)

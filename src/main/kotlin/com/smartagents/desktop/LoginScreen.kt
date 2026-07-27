@@ -137,11 +137,17 @@ fun LoginScreen(onLoginSuccess: (AuthState) -> Unit, onRetry: () -> Unit) {
                     errorMessage = null
                     scope.launch {
                         try {
-                            val res = AuthApi.login(username, password)
-                            if (res.ok && res.token != null && res.username != null) {
-                                onLoginSuccess(AuthState(res.token, res.username))
+                            val loginRes = AuthApi.login(username, password)
+                            if (!loginRes.success || loginRes.token == null) {
+                                errorMessage = loginRes.message ?: "登录失败"
+                                isLoading = false
+                                return@launch
+                            }
+                            val verifyRes = AuthApi.verify(loginRes.token)
+                            if (verifyRes.success && verifyRes.username != null) {
+                                onLoginSuccess(AuthState(loginRes.token, verifyRes.username))
                             } else {
-                                errorMessage = res.message ?: "登录失败"
+                                errorMessage = verifyRes.message ?: "登录验证失败"
                             }
                         } catch (e: Exception) {
                             errorMessage = "无法连接服务器，请检查网络"

@@ -21,7 +21,7 @@ import kotlinx.coroutines.withContext
 
 private sealed interface AppState {
     data object Checking : AppState
-    data class LoggedIn(val auth: AuthState, val currentView: String = "home") : AppState
+    data class LoggedIn(val auth: AuthState, val currentView: String = "home", val initialPage: String? = null) : AppState
     data object Login : AppState
 }
 
@@ -36,7 +36,7 @@ fun main() = application {
             val saved = withContext(Dispatchers.IO) { AuthStorage.load() }
             if (saved != null) {
                 val verify = AuthApi.verify(saved.token)
-                if (verify.ok && verify.username != null) {
+                if (verify.success && verify.username != null) {
                     appState = AppState.LoggedIn(AuthState(saved.token, verify.username))
                 } else {
                     withContext(Dispatchers.IO) { AuthStorage.clear() }
@@ -76,11 +76,12 @@ fun main() = application {
                         "office" -> OfficeScreen(
                             auth = s.auth,
                             onBack = { appState = AppState.LoggedIn(s.auth, "home") },
-                            onLogout = { AuthStorage.clear(); appState = AppState.Login }
+                            onLogout = { AuthStorage.clear(); appState = AppState.Login },
+                            initialPage = s.initialPage ?: "office"
                         )
                         else -> HomeScreen(
                             auth = s.auth,
-                            onNavigate = { view -> appState = AppState.LoggedIn(s.auth, view) },
+                            onNavigate = { view, page -> appState = AppState.LoggedIn(s.auth, view, page) },
                             onLogout = { AuthStorage.clear(); appState = AppState.Login }
                         )
                     }
